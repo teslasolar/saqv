@@ -1,0 +1,299 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>🧠 WebLLM · Build Your Own · 12-Panel Tutorial</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
+:root{--bg:#07090e;--card:#0d1018;--border:#1a1f2e;--t:#a0aac4;--t2:#4a5268;--ac:#6c9fff;--ok:#4ae0a0;--er:#ff5577;--wr:#ffb040;--lav:#b388ff;--teal:#40ddc0;--pink:#ff70a0;--gold:#ffd454;--white:#eaf0ff}
+*{margin:0;box-sizing:border-box}body{background:var(--bg);color:var(--t);height:100vh;overflow:hidden;font-family:'IBM Plex Mono',monospace;
+display:grid;grid-template:'H H'32px 'G G'1fr 'B B'34px/1fr;gap:0}
+.H{grid-area:H;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;font-size:9px}
+.G{grid-area:G;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:1px;padding:1px;background:var(--border);overflow:hidden}
+.B{grid-area:B;background:#040610;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px}
+.cell{background:var(--bg);overflow:hidden;position:relative;display:flex;flex-direction:column;transition:border-color .3s}
+.cell.active{background:var(--card);border:1px solid var(--ac)}
+.cell .ch{font-size:7px;padding:3px 6px;color:var(--ac);letter-spacing:1px;font-weight:600;background:rgba(108,159,255,.04);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cell .ch .num{color:var(--t2);font-size:6px}
+.cell .cb{flex:1;padding:6px;font-size:8px;line-height:1.5;overflow-y:auto}
+.cell .cb h3{font-family:'IBM Plex Sans',sans-serif;font-size:clamp(9px,1.2vw,13px);font-weight:700;color:var(--white);margin-bottom:4px}
+.cell .cb p{font-size:8px;color:var(--t);margin-bottom:4px;line-height:1.5}
+.cell .cb pre{background:rgba(108,159,255,.04);border:1px solid var(--border);border-radius:3px;padding:4px 6px;font-size:7px;line-height:1.5;overflow-x:auto;white-space:pre-wrap;margin:3px 0;color:var(--ok)}
+.cell .cb .tag{display:inline-block;font-size:6px;padding:1px 4px;border-radius:2px;margin:1px;letter-spacing:.5px}
+.cell .cb .tag.b{color:var(--ac);border:1px solid rgba(108,159,255,.25)}
+.cell .cb .tag.g{color:var(--ok);border:1px solid rgba(74,224,160,.25)}
+.cell .cb .tag.o{color:var(--wr);border:1px solid rgba(255,176,64,.25)}
+.cell .cb .tag.p{color:var(--lav);border:1px solid rgba(179,136,255,.25)}
+/* LLM panel */
+#llmCell .cb{display:flex;flex-direction:column}
+#llmIn{background:var(--card);border:1px solid var(--border);color:var(--t);font-size:8px;padding:3px 6px;border-radius:3px;font-family:inherit;width:100%;resize:none;height:28px}
+#llmOut{flex:1;overflow-y:auto;font-size:8px;line-height:1.5;white-space:pre-wrap;margin-top:4px;color:var(--ok);min-height:20px}
+#llmStatus{font-size:7px;color:var(--t2);margin-top:2px}
+/* Buttons */
+.bt{background:var(--card);border:1px solid var(--border);color:var(--t2);font-size:8px;padding:2px 10px;cursor:pointer;border-radius:2px;font-family:inherit}
+.bt:hover{border-color:var(--ac);color:var(--ac)}.bt.go{color:var(--ok);border-color:var(--ok)}.bt.on{color:var(--er);border-color:var(--er)}.bt.ld{color:var(--wr);border-color:var(--wr)}
+#prog{flex:1;height:3px;background:var(--card);border-radius:2px;cursor:pointer}
+#progF{height:100%;background:linear-gradient(90deg,var(--lav),var(--ac),var(--ok));width:0;border-radius:2px;transition:width .5s}
+#step{font-size:8px;color:var(--t2);min-width:60px;text-align:right}
+</style></head><body>
+<div class="H">
+<span style="color:var(--ac);font-weight:700;letter-spacing:2px">🧠 WebLLM</span>
+<span style="color:var(--border)">│</span>
+<span style="color:var(--t2)">Build → Deploy → Run in Browser</span>
+<span style="flex:1"></span>
+<span style="color:var(--wr);font-size:8px" id="llmBadge">MODEL: NOT LOADED</span>
+<span style="color:var(--border)">│</span>
+<span style="color:var(--t2);font-size:8px" id="stepLabel">READY</span>
+</div>
+<div class="G" id="grid"></div>
+<div class="B">
+<button class="bt go" onclick="goAuto()" id="pB">▶ AUTO</button>
+<button class="bt" onclick="prev()" id="pvB">◀</button>
+<button class="bt" onclick="next()" id="nxB">▶</button>
+<button class="bt ld" onclick="loadLLM()" id="llB">🧠 LOAD MODEL</button>
+<button class="bt" onclick="toggleRec()" id="rB">● REC</button>
+<div id="prog"><div id="progF"></div></div>
+<div id="step">0/6</div>
+</div>
+<script type="module">
+const $=id=>document.getElementById(id);
+
+// ═══ 12 CELL DEFINITIONS ═══
+// Each cell teaches one concept. They update per step (6 steps).
+const CELLS=[
+{id:'what',title:'📖 WHAT IS WEBLLM',steps:[
+`<h3>What is WebLLM?</h3><p>A JavaScript library that runs LLMs entirely in your browser using WebGPU. No server. No API key. No cloud.</p><p><span class="tag b">@mlc-ai/web-llm</span> <span class="tag g">WebGPU</span> <span class="tag o">In-Browser</span></p>`,
+`<h3>How it works</h3><p>Models are compiled to WebGPU shaders via MLC (Machine Learning Compilation). The browser downloads model weights once, caches them, runs inference on your GPU.</p>`,
+`<h3>Supported models</h3><pre>SmolLM2-135M    (tiny, fast)\nSmolLM2-360M    (small, good)\nLlama-3.2-1B    (medium)\nPhi-3.5-mini    (capable)\nQwen2.5-1.5B    (multilingual)</pre>`,
+`<h3>Browser requirements</h3><p>Chrome 113+ or Edge 113+ for WebGPU. No Firefox yet. GPU required — integrated is fine for small models.</p>`,
+`<h3>Why in-browser?</h3><p>Privacy: data never leaves the device. Cost: zero API calls. Offline: works without internet after first load. Speed: GPU inference, no network latency.</p>`,
+`<h3>The architecture</h3><pre>User → Browser → WebGPU → GPU\n  ↑                        ↓\n  └── tokens ← inference ←─┘\n\nNo server in the loop.</pre>`
+]},
+{id:'repo',title:'📁 REPO STRUCTURE',steps:[
+`<h3>Create the repo</h3><pre>mkdir my-webllm-app\ncd my-webllm-app\ngit init</pre>`,
+`<h3>File structure</h3><pre>my-webllm-app/\n├── index.html\n├── app.js     (type="module")\n└── style.css</pre><p>That's it. Three files. No build step.</p>`,
+`<h3>The import</h3><pre>// app.js\nimport { CreateMLCEngine }\n  from "https://esm.run/\n  @mlc-ai/web-llm";</pre><p>CDN import. No npm needed.</p>`,
+`<h3>Package.json (optional)</h3><pre>{\n  "name": "my-webllm-app",\n  "private": true,\n  "scripts": {\n    "dev": "npx serve ."\n  }\n}</pre>`,
+`<h3>Add a README</h3><pre># My WebLLM App\nRuns an LLM in your browser.\nNo server. No API key.\n\n## Usage\nOpen index.html.\nClick Load Model.\nChat.</pre>`,
+`<h3>Git push</h3><pre>git add -A\ngit commit -m "init webllm"\ngit remote add origin \\\n  git@github.com:YOU/REPO\ngit push -u origin main</pre>`
+]},
+{id:'html',title:'📄 INDEX.HTML',steps:[
+`<h3>The HTML shell</h3><pre>&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n  &lt;meta charset="utf-8"&gt;\n  &lt;title&gt;My LLM&lt;/title&gt;\n  &lt;link rel="stylesheet"\n    href="style.css"&gt;\n&lt;/head&gt;</pre>`,
+`<h3>The body</h3><pre>&lt;body&gt;\n  &lt;div id="status"&gt;\n    Click Load\n  &lt;/div&gt;\n  &lt;div id="chat"&gt;&lt;/div&gt;\n  &lt;textarea id="input"&gt;\n  &lt;/textarea&gt;\n  &lt;button id="send"&gt;\n    Send\n  &lt;/button&gt;\n  &lt;button id="load"&gt;\n    Load Model\n  &lt;/button&gt;</pre>`,
+`<h3>The module script</h3><pre>&lt;script\n  type="module"\n  src="app.js"&gt;\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre><p><span class="tag o">type="module"</span> is required for ESM imports.</p>`,
+`<h3>Progress bar</h3><pre>&lt;div id="progress"&gt;\n  &lt;div id="bar"&gt;&lt;/div&gt;\n&lt;/div&gt;</pre><p>Show model download progress. Models are 50-500MB on first load.</p>`,
+`<h3>Streaming output</h3><pre>&lt;div id="output"&gt;&lt;/div&gt;</pre><p>Tokens stream in one at a time. Append each token to the output div for a typewriter effect.</p>`,
+`<h3>Complete HTML</h3><p>The entire HTML is ~30 lines. No framework. No build. No dependencies beyond the one ESM import.</p><p><span class="tag g">PURE HTML</span> <span class="tag g">NO BUILD</span></p>`
+]},
+{id:'engine',title:'⚙️ ENGINE INIT',steps:[
+`<h3>CreateMLCEngine</h3><pre>const engine =\n  await CreateMLCEngine(\n    "SmolLM2-360M-Instruct\\\n     -q4f16_1-MLC",\n    { initProgressCallback }\n  );</pre>`,
+`<h3>Progress callback</h3><pre>function initProgressCallback\n  (progress) {\n  bar.style.width =\n    (progress.progress\n     * 100) + "%";\n  status.textContent =\n    progress.text;\n}</pre>`,
+`<h3>Model selection</h3><pre>// Tiny (60MB, fast)\n"SmolLM2-135M-Instruct\n -q4f16_1-MLC"\n\n// Small (200MB, good)\n"SmolLM2-360M-Instruct\n -q4f16_1-MLC"\n\n// Medium (600MB)\n"Llama-3.2-1B-Instruct\n -q4f16_1-MLC"</pre>`,
+`<h3>Caching</h3><p>After first download, the model is cached in the browser's Cache API. Second load is instant. Users don't re-download.</p><p><span class="tag g">CACHED</span> <span class="tag b">OFFLINE OK</span></p>`,
+`<h3>Error handling</h3><pre>try {\n  engine = await\n    CreateMLCEngine(...);\n} catch (e) {\n  if (!navigator.gpu) {\n    status.textContent =\n      "No WebGPU";\n  }\n}</pre>`,
+`<h3>Engine ready</h3><p>Once loaded, the engine object exposes <code>chat.completions.create()</code> — same API shape as OpenAI. If you know the OpenAI API, you know WebLLM.</p>`
+]},
+{id:'chat',title:'💬 CHAT API',steps:[
+`<h3>chat.completions.create</h3><pre>const response =\n  await engine\n  .chat.completions\n  .create({\n    messages: [\n      { role: "user",\n        content: "Hi" }\n    ]\n  });</pre>`,
+`<h3>System prompts</h3><pre>messages: [\n  { role: "system",\n    content: "You are\n    a helpful assistant."\n  },\n  { role: "user",\n    content: prompt }\n]</pre>`,
+`<h3>Streaming</h3><pre>const chunks =\n  await engine\n  .chat.completions\n  .create({\n    messages,\n    stream: true\n  });\n\nfor await\n  (const chunk of chunks)\n{\n  const delta =\n    chunk.choices[0]\n    ?.delta?.content;\n  output.textContent\n    += delta || "";\n}</pre>`,
+`<h3>Parameters</h3><pre>{\n  messages,\n  max_tokens: 256,\n  temperature: 0.7,\n  top_p: 0.9,\n  stream: true\n}</pre><p>Same params as OpenAI.</p>`,
+`<h3>Multi-turn</h3><pre>const history = [];\nhistory.push(\n  {role:"user",\n   content:input});\nhistory.push(\n  {role:"assistant",\n   content:reply});\n// Send full history\n// each time</pre>`,
+`<h3>JSON mode</h3><pre>// Prompt for JSON\nmessages: [{\n  role: "system",\n  content: "Respond in\n  JSON only. No markdown."\n}]\n// Parse response\nconst data =\n  JSON.parse(\n    response);</pre>`
+]},
+{id:'deploy',title:'🚀 GITHUB PAGES',steps:[
+`<h3>Enable Pages</h3><p>Settings → Pages → Source: Deploy from a branch → Branch: main → Folder: / (root) → Save</p>`,
+`<h3>Wait ~60 seconds</h3><p>GitHub builds and deploys. Your app is live at:</p><pre>https://USERNAME\n  .github.io/REPO/</pre>`,
+`<h3>HTTPS required</h3><p>WebGPU only works on secure origins (HTTPS or localhost). GitHub Pages gives you HTTPS automatically.</p><p><span class="tag g">HTTPS ✓</span></p>`,
+`<h3>Custom domain</h3><pre>Settings → Pages →\n  Custom domain:\n  llm.yourdomain.com\n\n# Add CNAME file\necho "llm.yourdomain.com"\n  > CNAME\ngit add CNAME\ngit push</pre>`,
+`<h3>Cache headers</h3><p>GitHub Pages sets proper cache headers. Model files cache in the browser automatically. No config needed.</p>`,
+`<h3>Done!</h3><p>Your LLM runs at a URL. No server. No billing. No API key. Share the link. Anyone with Chrome 113+ can use it.</p><p><span class="tag g">DEPLOYED</span> <span class="tag g">FREE</span> <span class="tag g">NO SERVER</span></p>`
+]},
+{id:'webgpu',title:'🎮 WEBGPU',steps:[
+`<h3>What is WebGPU?</h3><p>The successor to WebGL. Direct access to GPU compute shaders from the browser. Enables ML inference at near-native speed.</p>`,
+`<h3>Check support</h3><pre>if (navigator.gpu) {\n  // WebGPU available\n} else {\n  // fallback or error\n}</pre>`,
+`<h3>Why not WebGL?</h3><p>WebGL is for graphics. WebGPU adds compute shaders — general-purpose GPU compute. Matrix multiplication, attention heads, all run as GPU kernels.</p>`,
+`<h3>Performance</h3><p>SmolLM2-360M generates ~20-40 tokens/sec on a laptop GPU. Larger models are slower but still usable for interactive apps.</p>`,
+`<h3>Memory</h3><p>GPU VRAM is the constraint. 135M model needs ~200MB VRAM. 1B model needs ~800MB. Check with <code>adapter.limits</code>.</p>`,
+`<h3>The future</h3><p>WebGPU is shipping in all Chromium browsers. Firefox is implementing. Safari has partial support. Within 2 years, every browser will run LLMs natively.</p>`
+]},
+{id:'mlc',title:'🔧 MLC COMPILATION',steps:[
+`<h3>What is MLC?</h3><p>Machine Learning Compilation. Converts PyTorch/HuggingFace models into optimized WebGPU shaders. The bridge between training and browser.</p>`,
+`<h3>Model formats</h3><pre>HuggingFace (PyTorch)\n  ↓ mlc_llm convert\nMLC format (shaders)\n  ↓ hosted on HF Hub\nBrowser downloads\n  ↓ cached locally\nWebGPU inference</pre>`,
+`<h3>Pre-compiled models</h3><p>MLC hosts dozens of pre-compiled models on HuggingFace. You just reference the model ID. No compilation needed for common models.</p>`,
+`<h3>Custom models</h3><pre>pip install mlc-llm\nmlc_llm convert_weight\n  --model my-model\n  --quantization q4f16_1\nmlc_llm compile\n  --model my-model\n  --target webgpu</pre>`,
+`<h3>Quantization</h3><p>q4f16_1 = 4-bit weights, 16-bit activations. Cuts model size 4× with minimal quality loss. Essential for browser deployment.</p>`,
+`<h3>Your own model</h3><p>Fine-tune any HuggingFace model → compile with MLC → host the weights → import with WebLLM. End-to-end custom LLM in browser.</p>`
+]},
+{id:'prompt',title:'📝 PROMPT ENGINEERING',steps:[
+`<h3>System prompts</h3><p>Small models need clear, constrained prompts. Be explicit about format. "Respond in 2 sentences" works better than "be concise."</p>`,
+`<h3>JSON output</h3><pre>system: "You are a JSON\n  generator. Output ONLY\n  valid JSON. No markdown.\n  No explanation."\n\nuser: "3 colors with\n  hex codes"</pre>`,
+`<h3>Few-shot examples</h3><pre>system: "Classify sentiment.\n  Example:\n  'I love this' → positive\n  'Terrible' → negative"\n\nuser: "Pretty good"\n→ positive</pre>`,
+`<h3>Chain of thought</h3><p>Small models benefit from "Think step by step" even more than large models. It forces structured reasoning despite limited capacity.</p>`,
+`<h3>Temperature</h3><pre>0.0 = deterministic\n0.3 = focused, reliable\n0.7 = creative, varied\n1.0 = maximum randomness</pre><p>For structured output, use 0.0-0.3.</p>`,
+`<h3>Token limits</h3><p>Small models have 2K-4K context windows. Keep prompts short. History management matters more than with large models.</p>`
+]},
+{id:'patterns',title:'🏗️ APP PATTERNS',steps:[
+`<h3>Chat interface</h3><p>The simplest pattern. Text in, text out. Multi-turn history. Streaming display. 90% of WebLLM apps start here.</p>`,
+`<h3>Form processor</h3><p>User fills a form → structured prompt → LLM generates analysis/summary → display result. No free-text chat needed.</p>`,
+`<h3>Content generator</h3><p>Template + variables → LLM expands → rendered output. Email drafts, product descriptions, code comments.</p>`,
+`<h3>Classifier</h3><p>Input → LLM returns category label. Sentiment, topic, urgency, intent. Works well with few-shot prompting.</p>`,
+`<h3>Extractor</h3><p>Paste text → LLM extracts structured data → JSON → render as table/chart. Receipts, emails, logs.</p>`,
+`<h3>Hybrid</h3><p>WebLLM for privacy-sensitive processing + server API for heavy tasks. Route by complexity. Small model handles 80% of queries locally.</p>`
+]},
+{id:'perf',title:'📊 PERFORMANCE',steps:[
+`<h3>Benchmarks</h3><pre>SmolLM2-135M: ~50 tok/s\nSmolLM2-360M: ~30 tok/s\nLlama-3.2-1B: ~15 tok/s\nPhi-3.5-mini:  ~8 tok/s</pre><p>On laptop GPU (GTX 1650 tier).</p>`,
+`<h3>First load vs cached</h3><pre>SmolLM2-360M:\n  First: ~8s (200MB dl)\n  Cached: ~2s (GPU init)\n\nLlama-3.2-1B:\n  First: ~20s (600MB)\n  Cached: ~4s</pre>`,
+`<h3>Memory usage</h3><p>Monitor with <code>performance.memory</code> in Chrome DevTools. GPU memory via <code>chrome://gpu</code>.</p>`,
+`<h3>Optimization tips</h3><p>Use smallest model that meets quality needs. Limit max_tokens. Stream responses. Show progress during load.</p>`,
+`<h3>Concurrent users</h3><p>Each browser tab has its own GPU context. One model per tab. No sharing between tabs or users — this is client-side.</p>`,
+`<h3>Mobile</h3><p>Chrome Android supports WebGPU. Performance is lower but SmolLM2-135M runs on recent phones. Test on target devices.</p>`
+]},
+{id:'llmLive',title:'🧠 LIVE MODEL',steps:[
+`<h3>Live model panel</h3><p>Click <strong>🧠 LOAD MODEL</strong> below to download SmolLM2-360M into your browser. ~200MB first time, cached after.</p>`,
+`<h3>Loading...</h3><p>Watch the progress. The model downloads as compiled WebGPU shaders. Your GPU is about to become an inference engine.</p>`,
+`<h3>Ready!</h3><p>Type a prompt below and press Enter. The model runs entirely in your browser. No server. No API. Your GPU.</p>`,
+`<h3>Try these prompts</h3><pre>→ "What is WebGPU?"\n→ "Write a haiku about code"\n→ "Explain LLMs in 2 sentences"\n→ "JSON: 3 programming languages with years"</pre>`,
+`<h3>Streaming</h3><p>Tokens arrive one at a time from your GPU. Each token is a forward pass through the neural network — happening right here in your browser.</p>`,
+`<h3>You built this</h3><p>This is the whole stack. HTML + one import + one API call. Deploy to GitHub Pages and anyone can use it. No server. No cost. The LLM lives in the browser.</p>`
+]}
+];
+
+// ═══ BUILD GRID ═══
+const grid=$('grid');
+CELLS.forEach((c,i)=>{
+const div=document.createElement('div');
+div.className='cell';div.id='cell_'+c.id;
+div.innerHTML=`<div class="ch">${c.title}<span class="num">${i+1}/12</span></div><div class="cb" id="cb_${c.id}"></div>`;
+if(c.id==='llmLive'){
+div.id='llmCell';
+div.innerHTML=`<div class="ch">🧠 LIVE MODEL<span class="num">12/12</span></div>
+<div class="cb" id="cb_llmLive">
+<div id="llmStatus" style="font-size:7px;color:var(--t2);margin-bottom:3px">Click 🧠 LOAD MODEL to begin</div>
+<div style="height:2px;background:var(--border);border-radius:1px;margin-bottom:4px;overflow:hidden"><div id="llmProg" style="height:100%;width:0;background:var(--wr);transition:width .3s"></div></div>
+<textarea id="llmIn" placeholder="Type a prompt..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.promptLLM()}"></textarea>
+<div id="llmOut"></div>
+</div>`;
+}
+grid.appendChild(div);
+});
+
+// ═══ STEPS ═══
+let currentStep=0;
+function showStep(s){
+currentStep=Math.max(0,Math.min(5,s));
+CELLS.forEach(c=>{
+const el=$('cb_'+c.id);
+if(c.id==='llmLive'){
+// LLM cell updates per step but keeps live UI
+const info=c.steps[currentStep];
+$('llmStatus').insertAdjacentHTML('afterend','');// keep status
+return;
+}
+if(el)el.innerHTML=c.steps[currentStep]||'';
+});
+// Highlight active concepts
+document.querySelectorAll('.cell').forEach(c=>c.classList.remove('active'));
+// Highlight a rotating subset
+const highlights=[
+[0,1,2],[1,2,3],[3,4,5],[5,6,7],[8,9,10],[6,7,11]
+][currentStep]||[];
+highlights.forEach(i=>{const cells=document.querySelectorAll('.cell');if(cells[i])cells[i].classList.add('active')});
+$('progF').style.width=((currentStep+1)/6*100)+'%';
+$('step').textContent=(currentStep+1)+'/6';
+$('stepLabel').textContent=['INTRO','SETUP','CODE','DEPLOY','ADVANCED','LIVE'][currentStep]||'';
+}
+function next(){showStep(currentStep+1)}
+function prev(){showStep(currentStep-1)}
+window.next=next;window.prev=prev;
+
+// Auto-advance
+let autoTimer=null;
+function goAuto(){
+if(autoTimer){clearInterval(autoTimer);autoTimer=null;$('pB').textContent='▶ AUTO';$('pB').classList.remove('on');$('pB').classList.add('go');return;}
+currentStep=-1;next();
+autoTimer=setInterval(()=>{
+if(currentStep>=5){clearInterval(autoTimer);autoTimer=null;$('pB').textContent='▶ AUTO';$('pB').classList.remove('on');$('pB').classList.add('go');return;}
+next();
+},12000);
+$('pB').textContent='⏸ STOP';$('pB').classList.add('on');$('pB').classList.remove('go');
+}
+window.goAuto=goAuto;
+
+// ═══ WEBLLM ═══
+let engine=null,llmReady=false,generating=false;
+
+async function loadLLM(){
+if(llmReady||generating)return;
+$('llmBadge').textContent='MODEL: LOADING';$('llmBadge').style.color='var(--wr)';
+$('llB').textContent='⏳ LOADING';$('llB').classList.add('on');
+$('llmStatus').textContent='Downloading model...';
+try{
+if(!navigator.gpu)throw new Error('WebGPU not available — Chrome 113+ required');
+const webllm=await import('https://esm.run/@mlc-ai/web-llm');
+engine=await webllm.CreateMLCEngine('SmolLM2-360M-Instruct-q4f16_1-MLC',{
+initProgressCallback:(p)=>{
+$('llmProg').style.width=(p.progress*100)+'%';
+$('llmStatus').textContent=p.text||('Loading: '+Math.round(p.progress*100)+'%');
+}});
+llmReady=true;
+$('llmBadge').textContent='MODEL: READY ✓';$('llmBadge').style.color='var(--ok)';
+$('llB').textContent='🧠 READY';$('llB').classList.remove('on');$('llB').classList.add('go');
+$('llmProg').style.width='100%';$('llmProg').style.background='var(--ok)';
+$('llmStatus').textContent='Model loaded. Type a prompt and press Enter.';
+}catch(e){
+$('llmBadge').textContent='MODEL: ERROR';$('llmBadge').style.color='var(--er)';
+$('llB').textContent='🧠 RETRY';$('llB').classList.remove('on');
+$('llmStatus').textContent='Error: '+e.message;
+}}
+window.loadLLM=loadLLM;
+
+async function promptLLM(){
+if(!llmReady||!engine||generating)return;
+const input=$('llmIn').value.trim();
+if(!input)return;
+generating=true;$('llmOut').textContent='';
+$('llmStatus').textContent='Generating...';
+try{
+const chunks=await engine.chat.completions.create({
+messages:[
+{role:'system',content:'You are a helpful assistant. Be concise. 2-3 sentences max.'},
+{role:'user',content:input}],
+max_tokens:150,temperature:0.7,stream:true});
+for await(const chunk of chunks){
+const d=chunk.choices[0]?.delta?.content||'';
+$('llmOut').textContent+=d;
+$('llmOut').scrollTop=1e6;
+}
+$('llmStatus').textContent='Done. Type another prompt.';
+}catch(e){$('llmOut').textContent+='[error]';$('llmStatus').textContent=e.message;}
+generating=false;
+}
+window.promptLLM=promptLLM;
+
+// ═══ RECORDER ═══
+let rec=null,ch=[];
+async function toggleRec(){
+const b=$('rB');
+if(!rec||rec.state!=='recording'){
+try{const stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser',frameRate:30},audio:true,preferCurrentTab:true,selfBrowserSurface:'include',systemAudio:'include'});
+const mime=MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,opus')?'video/mp4;codecs=avc1,opus':MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';
+const ext=mime.startsWith('video/mp4')?'.mp4':'.webm';
+rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
+ch=[];rec.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};
+rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());
+const bl=new Blob(ch,{type:mime}),u=URL.createObjectURL(bl),a=document.createElement('a');a.href=u;a.download='WebLLM_Tutorial'+ext;a.click();
+b.textContent='● REC';b.classList.remove('on')};
+stream.getVideoTracks()[0].onended=()=>{if(rec?.state==='recording')rec.stop()};
+rec.start(1000);b.textContent='■ STOP';b.classList.add('on');
+}catch(e){}}
+else{rec.stop()}}
+window.toggleRec=toggleRec;
+
+// ═══ KEYBOARD ═══
+document.addEventListener('keydown',e=>{
+if(e.target.tagName==='TEXTAREA')return;
+if(e.key==='ArrowRight')next();
+if(e.key==='ArrowLeft')prev();
+if(e.key===' '){e.preventDefault();goAuto();}
+});
+
+// Init
+showStep(0);
+</script></body></html>
