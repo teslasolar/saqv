@@ -1,0 +1,426 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>🔥 Steven's WebLLM · RTX 5070 Edition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
+:root{--bg:#07090e;--card:#0d1018;--border:#1a2030;--t:#a0aac4;--t2:#4a5268;--ac:#6cff6c;--blue:#64b5f6;--wr:#ffb040;--er:#ff5577;--lav:#b388ff;--teal:#40ddc0;--gold:#ffd454;--white:#eaf0ff}
+*{margin:0;box-sizing:border-box;font-family:'IBM Plex Mono',monospace}
+body{background:var(--bg);color:var(--t);height:100vh;overflow:hidden;
+display:grid;grid-template:'H H H'30px 'S C M'1fr 'B B B'34px/200px 1fr 210px;gap:1px}
+.H{grid-area:H;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;font-size:9px}
+.S{grid-area:S;background:var(--card);border-right:1px solid var(--border);overflow-y:auto;font-size:8px}
+.C{grid-area:C;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+.M{grid-area:M;background:var(--card);border-left:1px solid var(--border);overflow-y:auto;font-size:8px}
+.B{grid-area:B;background:#040610;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px}
+.ph{font-size:7px;padding:3px 8px;color:var(--ac);letter-spacing:1.5px;font-weight:600;background:rgba(108,255,108,.03);border-bottom:1px solid var(--border)}
+.pb{padding:6px 8px;font-size:8px;line-height:1.6}
+.k{color:var(--ac)}.v{color:var(--blue)}.w{color:var(--wr)}.e{color:var(--er)}.d{color:var(--t2)}.g{color:var(--gold)}
+.ri{padding:3px 8px;border-left:2px solid transparent;cursor:pointer;font-size:8px;transition:.12s;display:flex;align-items:center;gap:4px}
+.ri:hover{background:rgba(108,255,108,.03)}.ri.on{border-left-color:var(--ac);background:rgba(108,255,108,.06);color:var(--white)}
+.ri .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+/* Chat area */
+#chatArea{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.6;font-family:'IBM Plex Sans',sans-serif}
+.msg.user{align-self:flex-end;background:rgba(108,255,108,.08);border:1px solid rgba(108,255,108,.15);color:var(--white)}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--border);color:var(--t)}
+.msg.sys{align-self:center;color:var(--t2);font-size:9px;font-style:italic;font-family:'IBM Plex Mono',monospace}
+#inputArea{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:6px}
+#chatIn{flex:1;background:var(--card);border:1px solid var(--border);color:var(--t);font-size:11px;padding:6px 10px;border-radius:4px;font-family:'IBM Plex Sans',sans-serif;resize:none;height:36px}
+#chatIn:focus{outline:none;border-color:var(--ac)}
+.sendBtn{background:rgba(108,255,108,.1);border:1px solid rgba(108,255,108,.25);color:var(--ac);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600}
+.sendBtn:hover{background:rgba(108,255,108,.2)}
+/* Gauges */
+.gauge{margin:4px 0;display:flex;align-items:center;gap:6px;font-size:8px}
+.gauge-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:3px;transition:width .5s}
+.gauge-label{min-width:40px;color:var(--t2)}
+.gauge-val{min-width:35px;text-align:right}
+/* Model cards */
+.mcard{background:rgba(108,255,108,.02);border:1px solid var(--border);border-radius:4px;padding:6px 8px;margin:3px 0;cursor:pointer;transition:.15s}
+.mcard:hover{border-color:var(--ac)}.mcard.on{border-color:var(--ac);background:rgba(108,255,108,.06)}
+.mcard .mname{font-size:9px;font-weight:600;color:var(--white)}
+.mcard .minfo{font-size:7px;color:var(--t2);margin-top:2px}
+/* Progress */
+#modelProg{height:3px;background:var(--border);border-radius:2px;margin:4px 0;overflow:hidden}
+#modelProgF{height:100%;width:0;background:var(--wr);transition:width .3s;border-radius:2px}
+/* Buttons */
+.bt{background:var(--card);border:1px solid var(--border);color:var(--t2);font-size:8px;padding:2px 10px;cursor:pointer;border-radius:2px}
+.bt:hover{border-color:var(--ac);color:var(--ac)}.bt.go{color:var(--ac);border-color:var(--ac)}.bt.on{color:var(--er);border-color:var(--er)}
+.bt.ld{color:var(--wr);border-color:var(--wr)}
+</style></head><body>
+<div class="H">
+<span style="color:var(--ac);font-weight:700;letter-spacing:2px">🔥 STEVEN'S WEBLLM</span>
+<span style="color:var(--border)">│</span>
+<span class="d">RTX 5070 · 8GB VRAM · 32GB RAM</span>
+<span style="flex:1"></span>
+<span class="w" id="modelStatus">NO MODEL</span>
+<span style="color:var(--border)">│</span>
+<span class="d" id="tokRate">0 tok/s</span>
+</div>
+
+<div class="S">
+<div class="ph">🖥️ YOUR SYSTEM</div>
+<div class="pb" id="sysInfo">Detecting...</div>
+
+<div class="ph">📊 GPU MONITOR</div>
+<div class="pb" id="gpuMon">
+<div class="gauge"><span class="gauge-label k">VRAM</span><div class="gauge-bar"><div class="gauge-fill" id="vramBar" style="width:0;background:var(--ac)"></div></div><span class="gauge-val" id="vramVal">—</span></div>
+<div class="gauge"><span class="gauge-label v">GPU</span><div class="gauge-bar"><div class="gauge-fill" id="gpuBar" style="width:0;background:var(--blue)"></div></div><span class="gauge-val" id="gpuVal">—</span></div>
+<div class="gauge"><span class="gauge-label w">RAM</span><div class="gauge-bar"><div class="gauge-fill" id="ramBar" style="width:0;background:var(--wr)"></div></div><span class="gauge-val" id="ramVal">—</span></div>
+<div class="gauge"><span class="gauge-label e">CPU</span><div class="gauge-bar"><div class="gauge-fill" id="cpuBar" style="width:0;background:var(--er)"></div></div><span class="gauge-val" id="cpuVal">—</span></div>
+</div>
+
+<div class="ph">🧠 MODEL LIBRARY</div>
+<div class="pb" id="modelLib"></div>
+
+<div class="ph">⚙️ RATE LIMITER</div>
+<div class="pb">
+<div style="font-size:7px;margin-bottom:3px"><span class="k">max_concurrent:</span> <span class="v">1</span></div>
+<div style="font-size:7px;margin-bottom:3px"><span class="k">cooldown:</span> <span class="v" id="cooldown">0s</span></div>
+<div style="font-size:7px;margin-bottom:3px"><span class="k">total_requests:</span> <span class="v" id="totalReqs">0</span></div>
+<div style="font-size:7px"><span class="k">cache_size:</span> <span class="v" id="cacheSize">—</span></div>
+<div style="margin-top:4px"><button class="bt" onclick="clearCache()" style="width:100%;font-size:7px">🗑️ CLEAR MODEL CACHE</button></div>
+</div>
+</div>
+
+<div class="C">
+<div id="chatArea">
+<div class="msg sys">🔥 Hey Steven! Pick a model from the left panel. Your RTX 5070 with 8GB VRAM can handle up to ~4B params (green), 7B is tight (yellow), 8B is risky (red). Start with Llama 3.2 1B.</div>
+</div>
+<div id="modelProg"><div id="modelProgF"></div></div>
+<div id="inputArea">
+<textarea id="chatIn" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+<button class="sendBtn" onclick="sendMsg()">SEND</button>
+</div>
+</div>
+
+<div class="M">
+<div class="ph">📖 TUTORIAL</div>
+<div class="pb" id="tutorial" style="font-size:8px;line-height:1.7">
+<div style="color:var(--gold);font-weight:600;margin-bottom:4px">Step 1: Pick a model</div>
+<div style="color:var(--t);margin-bottom:6px">Click a model on the left. Green = fits your VRAM. Yellow = tight. Red = too big.</div>
+<div style="color:var(--gold);font-weight:600;margin-bottom:4px">Step 2: Wait for download</div>
+<div style="color:var(--t);margin-bottom:6px">First load downloads the model (~50-800MB). After that it's cached — instant next time.</div>
+<div style="color:var(--gold);font-weight:600;margin-bottom:4px">Step 3: Chat</div>
+<div style="color:var(--t);margin-bottom:6px">Type a message. The model runs on YOUR RTX 5070. No server. No API key. No cloud.</div>
+<div style="color:var(--gold);font-weight:600;margin-bottom:4px">Step 4: Deploy your own</div>
+<div style="color:var(--t);margin-bottom:6px">Save this HTML. Push to GitHub. Enable Pages. You now have a free AI chatbot at a URL.</div>
+</div>
+
+<div class="ph">📈 SESSION STATS</div>
+<div class="pb" id="stats">
+<div style="font-size:7px"><span class="k">messages:</span> <span class="v" id="stMsgs">0</span></div>
+<div style="font-size:7px"><span class="k">tokens_in:</span> <span class="v" id="stTokIn">0</span></div>
+<div style="font-size:7px"><span class="k">tokens_out:</span> <span class="v" id="stTokOut">0</span></div>
+<div style="font-size:7px"><span class="k">avg_speed:</span> <span class="v" id="stSpeed">—</span></div>
+<div style="font-size:7px"><span class="k">model:</span> <span class="v" id="stModel">none</span></div>
+</div>
+
+<div class="ph">🔧 PARAMETERS</div>
+<div class="pb">
+<div style="font-size:7px;margin-bottom:3px"><span class="k">temperature:</span> <input type="range" min="0" max="100" value="70" id="tempSlider" style="width:60px;vertical-align:middle" oninput="$('tempVal').textContent=this.value/100"> <span class="v" id="tempVal">0.7</span></div>
+<div style="font-size:7px;margin-bottom:3px"><span class="k">max_tokens:</span> <input type="range" min="50" max="1024" value="256" step="50" id="maxTokSlider" style="width:60px;vertical-align:middle" oninput="$('maxTokVal').textContent=this.value"> <span class="v" id="maxTokVal">256</span></div>
+<div style="font-size:7px"><span class="k">system:</span> <input type="text" id="sysPrompt" value="You are a helpful assistant." style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--t);font-size:7px;padding:2px 4px;margin-top:2px;border-radius:2px;font-family:inherit"></div>
+</div>
+
+<div class="ph">🔑 HOW TO DEPLOY</div>
+<div class="pb" style="font-size:7px;line-height:1.7;color:var(--t2)">
+<div>1. Save this HTML file</div>
+<div>2. Create GitHub repo</div>
+<div>3. Push the file</div>
+<div>4. Settings → Pages → main</div>
+<div>5. Wait 60 seconds</div>
+<div style="color:var(--ac);margin-top:3px">Your LLM is live. Free. Forever.</div>
+</div>
+</div>
+
+<div class="B">
+<span style="font-size:7px;color:var(--t2)">Steven & Tom started the super fire 🔥</span>
+<span style="flex:1"></span>
+<button class="bt" onclick="toggleRec()" id="rB">● REC</button>
+</div>
+
+<script type="module">
+const $=id=>document.getElementById(id);
+
+// ═══ MODEL LIBRARY — verified IDs + auto-discovery ═══
+const MODELS=[
+{id:'Llama-3.2-1B-Instruct-q4f16_1-MLC',name:'Llama 3.2 1B',size:'~600MB',vram:1.2,params:'1B',speed:'~20 tok/s',fit:'green',desc:'Small, fast, good reasoning. Great starting point.'},
+{id:'Llama-3.2-3B-Instruct-q4f16_1-MLC',name:'Llama 3.2 3B',size:'~1.8GB',vram:3.0,params:'3B',speed:'~10 tok/s',fit:'green',desc:'Strong general purpose. Good balance for your GPU.'},
+{id:'Phi-3.5-mini-instruct-q4f16_1-MLC',name:'Phi 3.5 Mini',size:'~2.2GB',vram:3.5,params:'3.8B',speed:'~8 tok/s',fit:'green',desc:'Very capable. Best quality in your VRAM budget.'},
+{id:'Llama-3.1-8B-Instruct-q4f16_1-MLC',name:'Llama 3.1 8B',size:'~4.5GB',vram:6.5,params:'8B',speed:'~4 tok/s',fit:'yellow',desc:'Tight fit on 8GB VRAM. Excellent if it fits.'},
+{id:'Hermes-2-Pro-Mistral-7B-q4f16_1-MLC',name:'Hermes Mistral 7B',size:'~4GB',vram:6.0,params:'7B',speed:'~4 tok/s',fit:'yellow',desc:'Fine-tuned Mistral. Great at following instructions.'},
+{id:'Hermes-3-Llama-3.1-8B-q4f16_1-MLC',name:'Hermes 3 Llama 8B',size:'~4.5GB',vram:7.0,params:'8B',speed:'~3 tok/s',fit:'red',desc:'Powerful but very tight on 8GB. May crash.'},
+];
+
+// Auto-discover: fetch full list from WebLLM prebuiltAppConfig on load
+async function discoverModels(){
+try{
+const webllm=await import('https://esm.run/@mlc-ai/web-llm');
+const all=webllm.prebuiltAppConfig.model_list;
+const discovered=all.map(m=>m.model_id).filter(id=>!MODELS.find(m=>m.id===id));
+if(discovered.length){
+const disc=document.createElement('div');
+disc.innerHTML=`<div style="font-size:7px;color:var(--t2);margin-top:4px;border-top:1px solid var(--border);padding-top:4px">${discovered.length} more models available:</div>`;
+discovered.slice(0,12).forEach(id=>{
+const card=document.createElement('div');card.className='mcard';
+card.innerHTML=`<div class="mname" style="color:var(--t2);font-size:7px">${id}</div>`;
+card.onclick=()=>loadModelById(id);
+disc.appendChild(card);
+});
+$('modelLib').appendChild(disc);
+}
+addMsg('sys','Auto-discovered '+all.length+' total models in WebLLM registry. '+MODELS.length+' curated for your RTX 5070.');
+}catch(e){/* silent — models still work from hardcoded list */}
+}
+setTimeout(discoverModels,2000);
+
+// Build model library
+const mLib=$('modelLib');
+MODELS.forEach((m,i)=>{
+const c=m.fit==='green'?'var(--ac)':m.fit==='yellow'?'var(--wr)':'var(--er)';
+const card=document.createElement('div');card.className='mcard';card.id='mc'+i;
+card.innerHTML=`<div class="mname" style="color:${c}">${m.fit==='green'?'✓':m.fit==='yellow'?'⚠':'✗'} ${m.name} <span style="color:var(--t2)">${m.params}</span></div>
+<div class="minfo">${m.size} · ~${m.vram}GB VRAM · ${m.speed}</div>
+<div class="minfo">${m.desc}</div>`;
+card.onclick=()=>loadModel(i);
+mLib.appendChild(card);
+});
+
+// ═══ SYSTEM DETECTION ═══
+async function detectSystem(){
+const info=[];
+// GPU
+if(navigator.gpu){
+try{
+const adapter=await navigator.gpu.requestAdapter();
+if(adapter){
+const ai=await adapter.requestAdapterInfo();
+const dev=await adapter.requestDevice();
+const limits=dev.limits;
+info.push(`<div><span class="k">GPU:</span> <span class="v">${ai.description||ai.vendor||'WebGPU Ready'}</span></div>`);
+info.push(`<div><span class="k">WebGPU:</span> <span class="v">✓ Available</span></div>`);
+info.push(`<div><span class="k">maxBuffer:</span> <span class="v">${(limits.maxBufferSize/1024/1024).toFixed(0)}MB</span></div>`);
+info.push(`<div><span class="k">maxCompute:</span> <span class="v">${limits.maxComputeWorkgroupSizeX}</span></div>`);
+dev.destroy();
+}
+}catch(e){info.push(`<div><span class="w">GPU probe error: ${e.message}</span></div>`);}
+}else{
+info.push(`<div><span class="e">WebGPU: ✗ Not available</span></div>`);
+info.push(`<div><span class="e">Need Chrome 113+</span></div>`);
+}
+// RAM
+if(navigator.deviceMemory) info.push(`<div><span class="k">RAM:</span> <span class="v">${navigator.deviceMemory}GB+ reported</span></div>`);
+// Cores
+info.push(`<div><span class="k">CPU cores:</span> <span class="v">${navigator.hardwareConcurrency||'?'}</span></div>`);
+// Platform
+info.push(`<div><span class="k">Platform:</span> <span class="v">${navigator.platform}</span></div>`);
+info.push(`<div><span class="k">Browser:</span> <span class="v">${/Chrome\/(\d+)/.exec(navigator.userAgent)?.[0]||navigator.userAgent.slice(0,30)}</span></div>`);
+// Steven's known specs
+info.push(`<div style="margin-top:4px;padding:3px 0;border-top:1px solid var(--border)"><span class="g">YOUR RIG:</span></div>`);
+info.push(`<div><span class="g">RTX 5070 · 8GB VRAM</span></div>`);
+info.push(`<div><span class="g">32GB RAM · i7 latest</span></div>`);
+info.push(`<div><span class="g">Budget: ≤6GB VRAM safe</span></div>`);
+$('sysInfo').innerHTML=info.join('');
+}
+detectSystem();
+
+// ═══ STATE ═══
+let engine=null,currentModel=null,generating=false;
+let totalReqs=0,totalTokIn=0,totalTokOut=0,msgCount=0,speeds=[];
+let lastReqTime=0,cooldownMs=1000;
+const history=[];
+
+// ═══ MONITORING ═══
+let cpuSamples=[];
+function monitorLoop(){
+// RAM (JS heap only — approximate)
+if(performance.memory){
+const used=performance.memory.usedJSHeapSize/1024/1024;
+const total=performance.memory.jsHeapSizeLimit/1024/1024;
+const pct=Math.round(used/total*100);
+$('ramBar').style.width=pct+'%';
+$('ramVal').textContent=Math.round(used)+'MB';
+}
+// CPU estimate via event loop timing
+const start=performance.now();
+setTimeout(()=>{
+const lag=performance.now()-start;
+const cpuEst=Math.min(100,Math.round(lag/2*10));
+cpuSamples.push(cpuEst);if(cpuSamples.length>20)cpuSamples.shift();
+const avg=Math.round(cpuSamples.reduce((a,b)=>a+b,0)/cpuSamples.length);
+$('cpuBar').style.width=avg+'%';
+$('cpuVal').textContent=avg+'%';
+$('cpuBar').parentElement.querySelector('.gauge-fill').style.background=avg>70?'var(--er)':avg>40?'var(--wr)':'var(--ac)';
+},0);
+// VRAM estimate (based on model size if loaded)
+if(currentModel){
+const vramPct=Math.round(MODELS[currentModel].vram/8*100);
+$('vramBar').style.width=vramPct+'%';
+$('vramVal').textContent=MODELS[currentModel].vram.toFixed(1)+'GB';
+$('gpuBar').style.width=(generating?'60':'15')+'%';
+$('gpuVal').textContent=generating?'Active':'Idle';
+}
+// Cache estimate
+if(caches) caches.keys().then(names=>{
+$('cacheSize').textContent=names.length+' entries';
+}).catch(()=>{});
+}
+setInterval(monitorLoop,2000);
+monitorLoop();
+
+// ═══ ENGINE ═══
+
+async function loadModel(idx){
+if(generating)return;
+const m=MODELS[idx];
+if(m.fit==='red'&&!confirm(`⚠ ${m.name} needs ~${m.vram}GB VRAM. Your RTX 5070 has 8GB. This might crash. Continue?`))return;
+return loadModelById(m.id,idx);
+}
+window.loadModel=loadModel;
+
+async function loadModelById(modelId,idx){
+if(generating)return;
+const m=idx!==undefined?MODELS[idx]:null;
+const name=m?m.name:modelId;
+
+// Highlight card
+document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('on'));
+if(idx!==undefined)$('mc'+idx)?.classList.add('on');
+
+$('modelStatus').textContent='LOADING: '+name;
+$('modelStatus').style.color='var(--wr)';
+addMsg('sys','Loading '+name+'... First time downloads the model. Cached after that.');
+
+try{
+if(!navigator.gpu)throw new Error('WebGPU not available. Need Chrome 113+ or Edge 113+.');
+
+const webllm=await import('https://esm.run/@mlc-ai/web-llm');
+
+if(engine){try{engine=null;}catch(e){}}
+
+engine=await webllm.CreateMLCEngine(modelId,{
+initProgressCallback:(p)=>{
+$('modelProgF').style.width=(p.progress*100)+'%';
+$('modelStatus').textContent=p.text||('Loading: '+Math.round(p.progress*100)+'%');
+}});
+
+currentModel=idx!==undefined?idx:0;
+$('modelStatus').textContent='READY: '+name;
+$('modelStatus').style.color='var(--ac)';
+$('modelProgF').style.width='100%';
+$('modelProgF').style.background='var(--ac)';
+$('stModel').textContent=name;
+history.length=0;
+addMsg('sys','✓ '+name+' loaded on your RTX 5070! Type a message to chat.');
+if(m)addMsg('sys','Using ~'+m.vram+'GB of your 8GB VRAM. Headroom: ~'+(8-m.vram).toFixed(1)+'GB.');
+}catch(e){
+$('modelStatus').textContent='ERROR';$('modelStatus').style.color='var(--er)';
+addMsg('sys','Error: '+e.message);
+$('modelProgF').style.width='0';
+}}
+window.loadModelById=loadModelById;
+
+async function sendMsg(){
+if(!engine||generating)return;
+const input=$('chatIn').value.trim();
+if(!input)return;
+
+// Rate limiter
+const now=Date.now();
+const elapsed=now-lastReqTime;
+if(elapsed<cooldownMs){
+const wait=Math.ceil((cooldownMs-elapsed)/1000);
+$('cooldown').textContent=wait+'s';
+addMsg('sys',`Rate limit: wait ${wait}s between requests.`);
+return;
+}
+
+$('chatIn').value='';
+addMsg('user',input);
+history.push({role:'user',content:input});
+totalTokIn+=Math.ceil(input.length/4);
+
+generating=true;lastReqTime=Date.now();
+totalReqs++;$('totalReqs').textContent=totalReqs;
+$('cooldown').textContent='0s';
+
+const botDiv=addMsg('bot','');
+const sysPrompt=$('sysPrompt').value;
+const temp=parseInt($('tempSlider').value)/100;
+const maxTok=parseInt($('maxTokSlider').value);
+
+try{
+const t0=performance.now();let tokCount=0;
+const chunks=await engine.chat.completions.create({
+messages:[{role:'system',content:sysPrompt},...history],
+max_tokens:maxTok,temperature:temp,stream:true
+});
+let full='';
+for await(const chunk of chunks){
+const d=chunk.choices[0]?.delta?.content||'';
+full+=d;tokCount++;
+botDiv.textContent=full;
+$('chatArea').scrollTop=1e6;
+// Live tok/s
+const elapsed=(performance.now()-t0)/1000;
+if(elapsed>0)$('tokRate').textContent=Math.round(tokCount/elapsed)+' tok/s';
+}
+history.push({role:'assistant',content:full});
+totalTokOut+=tokCount;
+const finalSpeed=Math.round(tokCount/((performance.now()-t0)/1000));
+speeds.push(finalSpeed);
+$('tokRate').textContent=finalSpeed+' tok/s';
+
+// Stats
+msgCount++;$('stMsgs').textContent=msgCount;
+$('stTokIn').textContent=totalTokIn;$('stTokOut').textContent=totalTokOut;
+$('stSpeed').textContent=Math.round(speeds.reduce((a,b)=>a+b,0)/speeds.length)+' tok/s avg';
+}catch(e){
+botDiv.textContent='[Error: '+e.message+']';botDiv.style.color='var(--er)';
+}
+generating=false;
+}
+window.sendMsg=sendMsg;
+
+function addMsg(type,text){
+const div=document.createElement('div');
+div.className='msg '+type;div.textContent=text;
+$('chatArea').appendChild(div);
+$('chatArea').scrollTop=1e6;
+return div;
+}
+
+// ═══ CACHE MANAGEMENT ═══
+async function clearCache(){
+if(!confirm('Clear all cached models? Next load will re-download.'))return;
+try{
+const names=await caches.keys();
+for(const n of names)await caches.delete(n);
+addMsg('sys','✓ Model cache cleared. '+names.length+' entries removed.');
+$('cacheSize').textContent='0 entries';
+}catch(e){addMsg('sys','Cache clear error: '+e.message);}
+}
+window.clearCache=clearCache;
+
+// ═══ RECORDER ═══
+let rec=null,ch=[];
+async function toggleRec(){
+const b=$('rB');
+if(!rec||rec.state!=='recording'){
+try{const stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser',frameRate:30},audio:true,preferCurrentTab:true,selfBrowserSurface:'include',systemAudio:'include'});
+const mime=MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,opus')?'video/mp4;codecs=avc1,opus':MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';
+const ext=mime.startsWith('video/mp4')?'.mp4':'.webm';
+rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
+ch=[];rec.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};
+rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());
+const bl=new Blob(ch,{type:mime}),u=URL.createObjectURL(bl),a=document.createElement('a');a.href=u;a.download='StevenWebLLM'+ext;a.click();
+b.textContent='● REC';b.classList.remove('on')};
+stream.getVideoTracks()[0].onended=()=>{if(rec?.state==='recording')rec.stop()};
+rec.start(1000);b.textContent='■ STOP';b.classList.add('on');
+}catch(e){}}
+else{rec.stop()}}
+window.toggleRec=toggleRec;
+
+// ═══ INIT ═══
+addMsg('sys','System detected. Your RTX 5070 (8GB VRAM) can run models up to ~4B parameters comfortably. Green models = safe. Yellow = tight. Red = risky.');
+addMsg('sys','Pick a model from the left panel to begin. I recommend starting with Llama 3.2 1B — fast and solid reasoning for its size.');
+</script></body></html>
